@@ -361,11 +361,11 @@ main (int argc, char *argv[])
 
   /* We need three secondary gies so lets create 3 more instances of
      nvinfer */
-  sgie1 = gst_element_factory_make ("nvinfer", "secondary1-nvinference-engine");
+////  sgie1 = gst_element_factory_make ("nvinfer", "secondary1-nvinference-engine");
 
-  sgie2 = gst_element_factory_make ("nvinfer", "secondary2-nvinference-engine");
+////  sgie2 = gst_element_factory_make ("nvinfer", "secondary2-nvinference-engine");
 
-  sgie3 = gst_element_factory_make ("nvinfer", "secondary3-nvinference-engine");
+////  sgie3 = gst_element_factory_make ("nvinfer", "secondary3-nvinference-engine");
 
   /* Use convertor to convert from NV12 to RGBA as required by nvosd */
   nvvidconv = gst_element_factory_make ("nvvideoconvert", "nvvideo-converter");
@@ -378,13 +378,13 @@ main (int argc, char *argv[])
   transform = gst_element_factory_make ("nvegltransform", "nvegl-transform");
 #endif
   sink = gst_element_factory_make ("nveglglessink", "nvvideo-renderer");
-
+//// modified
   if (!source || !h264parser || !decoder || !pgie ||
-      !nvtracker || !sgie1 || !sgie2 || !sgie3 || !nvvidconv || !nvosd || !sink) {
+      !nvtracker /* || !sgie1 || !sgie2 || !sgie3 */ || !nvvidconv || !nvosd || !sink) {
     g_printerr ("One element could not be created. Exiting.\n");
     return -1;
   }
-
+//// fin
 #ifdef PLATFORM_TEGRA
   if(!transform) {
     g_printerr ("One tegra element could not be created. Exiting.\n");
@@ -402,9 +402,9 @@ main (int argc, char *argv[])
   /* Set all the necessary properties of the nvinfer element,
    * the necessary ones are : */
   g_object_set (G_OBJECT (pgie), "config-file-path", PGIE_CONFIG_FILE, NULL);
-  g_object_set (G_OBJECT (sgie1), "config-file-path", SGIE1_CONFIG_FILE, NULL);
-  g_object_set (G_OBJECT (sgie2), "config-file-path", SGIE2_CONFIG_FILE, NULL);
-  g_object_set (G_OBJECT (sgie3), "config-file-path", SGIE3_CONFIG_FILE, NULL);
+////  g_object_set (G_OBJECT (sgie1), "config-file-path", SGIE1_CONFIG_FILE, NULL);
+////  g_object_set (G_OBJECT (sgie2), "config-file-path", SGIE2_CONFIG_FILE, NULL);
+////  g_object_set (G_OBJECT (sgie3), "config-file-path", SGIE3_CONFIG_FILE, NULL);
 
   /* Set necessary properties of the tracker element. */
   if (!set_tracker_properties(nvtracker)) {
@@ -420,16 +420,17 @@ main (int argc, char *argv[])
   /* Set up the pipeline */
   /* we add all elements into the pipeline */
   /* decoder | pgie1 | nvtracker | sgie1 | sgie2 | sgie3 | etc.. */
+//// modified
 #ifdef PLATFORM_TEGRA
   gst_bin_add_many (GST_BIN (pipeline),
-      source, h264parser, decoder, streammux, pgie, nvtracker, sgie1, sgie2, sgie3,
+      source, h264parser, decoder, streammux, pgie, nvtracker /* , sgie1, sgie2, sgie3 */,
       nvvidconv, nvosd, transform, sink, NULL);
 #else
   gst_bin_add_many (GST_BIN (pipeline),
-      source, h264parser, decoder, streammux, pgie, nvtracker, sgie1, sgie2, sgie3,
+      source, h264parser, decoder, streammux, pgie, nvtracker /* , sgie1, sgie2, sgie3 */,
       nvvidconv, nvosd, sink, NULL);
 #endif
-
+//// fin
   GstPad *sinkpad, *srcpad;
   gchar pad_name_sink[16] = "sink_0";
   gchar pad_name_src[16] = "src";
@@ -459,20 +460,21 @@ main (int argc, char *argv[])
     g_printerr ("Elements could not be linked: 1. Exiting.\n");
     return -1;
   }
-
+//// modified
 #ifdef PLATFORM_TEGRA
-  if (!gst_element_link_many (streammux, pgie, nvtracker, sgie1,
-      sgie2, sgie3, nvvidconv, nvosd, transform, sink, NULL)) {
+  if (!gst_element_link_many (streammux, pgie, nvtracker,/* sgie1,
+      sgie2, sgie3,*/ nvvidconv, nvosd, transform, sink, NULL)) {
     g_printerr ("Elements could not be linked. Exiting.\n");
     return -1;
   }
 #else
-  if (!gst_element_link_many (streammux, pgie, nvtracker, sgie1,
-      sgie2, sgie3, nvvidconv, nvosd, sink, NULL)) {
+  if (!gst_element_link_many (streammux, pgie, nvtracker,/* sgie1,
+      sgie2, sgie3,*/ nvvidconv, nvosd, sink, NULL)) {
     g_printerr ("Elements could not be linked. Exiting.\n");
     return -1;
   }
 #endif
+//// fin
 
   /* Lets add probe to get informed of the meta data generated, we add probe to
    * the sink pad of the osd element, since by that time, the buffer would have
