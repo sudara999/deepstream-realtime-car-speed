@@ -80,6 +80,15 @@ guint sgie1_unique_id = 2;
 guint sgie2_unique_id = 3;
 guint sgie3_unique_id = 4;
 
+//// modified
+
+/* csv file that will record the objects tracked in each frame
+ * The headers are:
+ * Frame #, object ID, x, y, width, height */
+FILE *csv_file;
+
+//// fin
+
 /* This is the buffer probe function that we have registered on the sink pad
  * of the OSD element. All the infer elements in the pipeline shall attach
  * their metadata to the GstBuffer, here we will iterate & process the metadata
@@ -96,6 +105,13 @@ osd_sink_pad_buffer_probe (GstPad * pad, GstPadProbeInfo * info,
     NvDsMetaList * l_frame = NULL;
     NvDsMetaList * l_obj = NULL;
     NvDsDisplayMeta *display_meta = NULL;
+//// modified
+    guint object_ID = 0;
+    guint x_box = 0;
+    guint y_box = 0;
+    guint width_box = 0;
+    guint height_box = 0; 
+//// fin
 
     NvDsBatchMeta *batch_meta = gst_buffer_get_nvds_batch_meta (buf);
 
@@ -114,7 +130,16 @@ osd_sink_pad_buffer_probe (GstPad * pad, GstPadProbeInfo * info,
                 person_count++;
                 num_rects++;
             }
-        }
+//// modified	    
+	    object_ID = obj_meta->object_id;
+	    x_box = obj_meta->rect_params.left;
+	    y_box = obj_meta->rect_params.top;
+	    width_box = obj_meta->rect_params.width;
+	    height_box = obj_meta->rect_params.height;
+     	    fprintf(csv_file, "%d, %d, %d, %d, %d, %d\n", frame_number, object_ID, x_box, y_box, width_box, height_box);
+//// fin
+	}
+
         display_meta = nvds_acquire_display_meta_from_pool(batch_meta);
         NvOSD_TextParams *txt_params  = &display_meta->text_params[0];
         display_meta->num_labels = 1;
@@ -492,6 +517,11 @@ main (int argc, char *argv[])
 
   /* Iterate */
   g_print ("Running...\n");
+//// modified
+  printf(">>> Creating csv file: objects.csv\n");
+  csv_file = fopen("objects.csv", "w");
+  fprintf(csv_file, "Frame #, object ID, x, y, width, height");
+//// fin 
   g_main_loop_run (loop);
 
   /* Out of the main loop, clean up nicely */
