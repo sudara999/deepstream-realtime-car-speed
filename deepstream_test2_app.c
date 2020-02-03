@@ -30,9 +30,6 @@
 #include "gstnvdsmeta.h"
 
 #define PGIE_CONFIG_FILE  "dstest2_pgie_config.txt"
-#define SGIE1_CONFIG_FILE "dstest2_sgie1_config.txt"
-#define SGIE2_CONFIG_FILE "dstest2_sgie2_config.txt"
-#define SGIE3_CONFIG_FILE "dstest2_sgie3_config.txt"
 #define MAX_DISPLAY_LEN 64
 
 #define TRACKER_CONFIG_FILE "dstest2_tracker_config.txt"
@@ -57,41 +54,13 @@
 
 gint frame_number = 0;
 /* These are the strings of the labels for the respective models */
-gchar sgie1_classes_str[12][32] = { "black", "blue", "brown", "gold", "green",
-  "grey", "maroon", "orange", "red", "silver", "white", "yellow"
-};
-
-gchar sgie2_classes_str[20][32] =
-    { "Acura", "Audi", "BMW", "Chevrolet", "Chrysler",
-  "Dodge", "Ford", "GMC", "Honda", "Hyundai", "Infiniti", "Jeep", "Kia",
-      "Lexus", "Mazda", "Mercedes", "Nissan",
-  "Subaru", "Toyota", "Volkswagen"
-};
-
-gchar sgie3_classes_str[6][32] = { "coupe", "largevehicle", "sedan", "suv",
-  "truck", "van"
-};
-
 gchar pgie_classes_str[4][32] =
     { "Vehicle", "TwoWheeler", "Person", "RoadSign" };
-
-/* gie_unique_id is one of the properties in the above dstest2_sgiex_config.txt
- * files. These should be unique and known when we want to parse the Metadata
- * respective to the sgie labels. Ideally these should be read from the config
- * files but for brevity we ensure they are same. */
-
-guint sgie1_unique_id = 2;
-guint sgie2_unique_id = 3;
-guint sgie3_unique_id = 4;
-
-//// modified
 
 /* csv file that will record the objects tracked in each frame
  * The headers are:
  * Frame #, object ID, x, y, width, height */
 FILE *csv_file;
-
-//// fin
 
 /* This is the buffer probe function that we have registered on the sink pad
  * of the OSD element. All the infer elements in the pipeline shall attach
@@ -109,13 +78,11 @@ osd_sink_pad_buffer_probe (GstPad * pad, GstPadProbeInfo * info,
     NvDsMetaList * l_frame = NULL;
     NvDsMetaList * l_obj = NULL;
     NvDsDisplayMeta *display_meta = NULL;
-//// modified
     guint object_ID = 0;
     guint x_box = 0;
     guint y_box = 0;
     guint width_box = 0;
     guint height_box = 0; 
-//// fin
 
     NvDsBatchMeta *batch_meta = gst_buffer_get_nvds_batch_meta (buf);
 
@@ -134,14 +101,12 @@ osd_sink_pad_buffer_probe (GstPad * pad, GstPadProbeInfo * info,
                 person_count++;
                 num_rects++;
             }
-//// modified	    
 	    object_ID = obj_meta->object_id;
 	    x_box = obj_meta->rect_params.left;
 	    y_box = obj_meta->rect_params.top;
 	    width_box = obj_meta->rect_params.width;
 	    height_box = obj_meta->rect_params.height;
      	    fprintf(csv_file, "%d, %d, %d, %d, %d, %d\n", frame_number, object_ID, x_box, y_box, width_box, height_box);
-//// fin
 	}
 
         display_meta = nvds_acquire_display_meta_from_pool(batch_meta);
@@ -223,37 +188,6 @@ bus_call (GstBus * bus, GstMessage * msg, gpointer data)
 #define CONFIG_GROUP_TRACKER_LL_LIB_FILE "ll-lib-file"
 #define CONFIG_GROUP_TRACKER_ENABLE_BATCH_PROCESS "enable-batch-process"
 #define CONFIG_GPU_ID "gpu-id"
-
-static gchar *
-get_absolute_file_path (gchar *cfg_file_path, gchar *file_path)
-{
-  gchar abs_cfg_path[PATH_MAX + 1];
-  gchar *abs_file_path;
-  gchar *delim;
-
-  if (file_path && file_path[0] == '/') {
-    return file_path;
-  }
-
-  if (!realpath (cfg_file_path, abs_cfg_path)) {
-    g_free (file_path);
-    return NULL;
-  }
-
-  // Return absolute path of config file if file_path is NULL.
-  if (!file_path) {
-    abs_file_path = g_strdup (abs_cfg_path);
-    return abs_file_path;
-  }
-
-  delim = g_strrstr (abs_cfg_path, "/");
-  *(delim + 1) = '\0';
-
-  abs_file_path = g_strconcat (abs_cfg_path, file_path, NULL);
-  g_free (file_path);
-
-  return abs_file_path;
-}
 
 static gboolean
 set_tracker_properties (GstElement *nvtracker)
@@ -429,9 +363,8 @@ int
 main (int argc, char *argv[])
 {
   GMainLoop *loop = NULL;
-  GstElement *pipeline = NULL, /* *source = NULL, *h264parser = NULL,
-      *decoder = NULL,*/ *streammux = NULL, *sink = NULL, *pgie = NULL, *nvvidconv = NULL,
-      *nvosd = NULL, *sgie1 = NULL, *sgie2 = NULL, *sgie3 = NULL, *nvtracker = NULL;
+  GstElement *pipeline = NULL, *streammux = NULL, *sink = NULL, *pgie = NULL, *nvvidconv = NULL,
+      *nvosd = NULL, *nvtracker = NULL;
   g_print ("With tracker\n");
 #ifdef PLATFORM_TEGRA
   GstElement *transform = NULL;
@@ -442,7 +375,7 @@ main (int argc, char *argv[])
 
   /* Check input arguments */
   if (argc != 2) {
-    g_printerr ("Usage: %s <filename>\n", argv[0]);
+    g_printerr ("Usage: %s <fileURI>\n", argv[0]);
     return -1;
   }
 
@@ -453,7 +386,7 @@ main (int argc, char *argv[])
   /* Create gstreamer elements */
 
   /* Create Pipeline element that will be a container of other elements */
-  pipeline = gst_pipeline_new ("dstest2-pipeline");
+  pipeline = gst_pipeline_new ("dscd-pipeline");
 
 //  /* Source element for reading from the file */
 //  source = gst_element_factory_make ("filesrc", "file-source");
@@ -516,14 +449,6 @@ main (int argc, char *argv[])
   /* We need to have a tracker to track the identified objects */
   nvtracker = gst_element_factory_make ("nvtracker", "tracker");
 
-  /* We need three secondary gies so lets create 3 more instances of
-     nvinfer */
-////  sgie1 = gst_element_factory_make ("nvinfer", "secondary1-nvinference-engine");
-
-////  sgie2 = gst_element_factory_make ("nvinfer", "secondary2-nvinference-engine");
-
-////  sgie3 = gst_element_factory_make ("nvinfer", "secondary3-nvinference-engine");
-
   /* Use convertor to convert from NV12 to RGBA as required by nvosd */
   nvvidconv = gst_element_factory_make ("nvvideoconvert", "nvvideo-converter");
 
@@ -535,13 +460,11 @@ main (int argc, char *argv[])
   transform = gst_element_factory_make ("nvegltransform", "nvegl-transform");
 #endif
   sink = gst_element_factory_make ("nveglglessink", "nvvideo-renderer");
-//// modified
-  if (/*!source || !h264parser || !decoder || */!pgie ||
-      !nvtracker /* || !sgie1 || !sgie2 || !sgie3 */ || !nvvidconv || !nvosd || !sink) {
+
+  if (!pgie || !nvtracker || !nvvidconv || !nvosd || !sink) {
     g_printerr ("One element could not be created. Exiting.\n");
     return -1;
   }
-//// fin
 #ifdef PLATFORM_TEGRA
   if(!transform) {
     g_printerr ("One tegra element could not be created. Exiting.\n");
@@ -559,9 +482,6 @@ main (int argc, char *argv[])
   /* Set all the necessary properties of the nvinfer element,
    * the necessary ones are : */
   g_object_set (G_OBJECT (pgie), "config-file-path", PGIE_CONFIG_FILE, NULL);
-////  g_object_set (G_OBJECT (sgie1), "config-file-path", SGIE1_CONFIG_FILE, NULL);
-////  g_object_set (G_OBJECT (sgie2), "config-file-path", SGIE2_CONFIG_FILE, NULL);
-////  g_object_set (G_OBJECT (sgie3), "config-file-path", SGIE3_CONFIG_FILE, NULL);
 
   /* Set necessary properties of the tracker element. */
   if (!set_tracker_properties(nvtracker)) {
@@ -577,61 +497,28 @@ main (int argc, char *argv[])
   /* Set up the pipeline */
   /* we add all elements into the pipeline */
   /* decoder | pgie1 | nvtracker | sgie1 | sgie2 | sgie3 | etc.. */
-//// modified
 #ifdef PLATFORM_TEGRA
   gst_bin_add_many (GST_BIN (pipeline),
-      /*source, h264parser, decoder,*/ streammux, pgie, nvtracker /* , sgie1, sgie2, sgie3 */,
+      streammux, pgie, nvtracker,
       nvvidconv, nvosd, transform, sink, NULL);
 #else
   gst_bin_add_many (GST_BIN (pipeline),
-      /*source, h264parser, decoder,*/ streammux, pgie, nvtracker /* , sgie1, sgie2, sgie3 */,
+      streammux, pgie, nvtracker,
       nvvidconv, nvosd, sink, NULL);
 #endif
-//// fin
-//  GstPad *sinkpad, *srcpad;
-//  gchar pad_name_sink[16] = "sink_0";
-//  gchar pad_name_src[16] = "src";
-//
-//  sinkpad = gst_element_get_request_pad (streammux, pad_name_sink);
-//  if (!sinkpad) {
-//    g_printerr ("Streammux request sink pad failed. Exiting.\n");
-//    return -1;
-//  }
-//
-//  srcpad = gst_element_get_static_pad (decoder, pad_name_src);
-//  if (!srcpad) {
-//    g_printerr ("Decoder request src pad failed. Exiting.\n");
-//    return -1;
-//  }
-//
-//  if (gst_pad_link (srcpad, sinkpad) != GST_PAD_LINK_OK) {
-//      g_printerr ("Failed to link decoder to stream muxer. Exiting.\n");
-//      return -1;
-//  }
-//
-//  gst_object_unref (sinkpad);
-//  gst_object_unref (srcpad);
-//
-//  /* Link the elements together */
-//  if (!gst_element_link_many (source, h264parser, decoder, NULL)) {
-//    g_printerr ("Elements could not be linked: 1. Exiting.\n");
-//    return -1;
-//  }
-//// modified
 #ifdef PLATFORM_TEGRA
-  if (!gst_element_link_many (streammux, pgie, nvtracker,/* sgie1,
-      sgie2, sgie3,*/ nvvidconv, nvosd, transform, sink, NULL)) {
+  if (!gst_element_link_many (streammux, pgie, nvtracker,
+      nvvidconv, nvosd, transform, sink, NULL)) {
     g_printerr ("Elements could not be linked. Exiting.\n");
     return -1;
   }
 #else
-  if (!gst_element_link_many (streammux, pgie, nvtracker,/* sgie1,
-      sgie2, sgie3,*/ nvvidconv, nvosd, sink, NULL)) {
+  if (!gst_element_link_many (streammux, pgie, nvtracker,
+      nvvidconv, nvosd, sink, NULL)) {
     g_printerr ("Elements could not be linked. Exiting.\n");
     return -1;
   }
 #endif
-//// fin
 
   /* Lets add probe to get informed of the meta data generated, we add probe to
    * the sink pad of the osd element, since by that time, the buffer would have
@@ -649,11 +536,9 @@ main (int argc, char *argv[])
 
   /* Iterate */
   g_print ("Running...\n");
-//// modified
-  printf(">>> Creating csv file: objects.csv\n");
+  g_print (">>> Creating csv file: objects.csv\n");
   csv_file = fopen("objects.csv", "w");
   fprintf(csv_file, "Frame #, object ID, x, y, width, height\n");
-//// fin 
   g_main_loop_run (loop);
 
   /* Out of the main loop, clean up nicely */
