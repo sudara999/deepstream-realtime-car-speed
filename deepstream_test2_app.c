@@ -79,6 +79,7 @@ osd_sink_pad_buffer_probe (GstPad * pad, GstPadProbeInfo * info,
     NvDsMetaList * l_obj = NULL;
     NvDsDisplayMeta *display_meta = NULL;
     guint object_ID = 0;
+    gchar *object_label = NULL;
     guint x_box = 0;
     guint y_box = 0;
     guint width_box = 0;
@@ -102,11 +103,12 @@ osd_sink_pad_buffer_probe (GstPad * pad, GstPadProbeInfo * info,
                 num_rects++;
             }
 	    object_ID = obj_meta->object_id;
+	    object_label = obj_meta->obj_label;
 	    x_box = obj_meta->rect_params.left;
 	    y_box = obj_meta->rect_params.top;
 	    width_box = obj_meta->rect_params.width;
 	    height_box = obj_meta->rect_params.height;
-     	    fprintf(csv_file, "%d, %d, %d, %d, %d, %d\n", frame_number, object_ID, x_box, y_box, width_box, height_box);
+     	    fprintf(csv_file, "%d, %d, %s, %d, %d, %d, %d\n", frame_number, object_ID, object_label, x_box, y_box, width_box, height_box);
 	}
 
         display_meta = nvds_acquire_display_meta_from_pool(batch_meta);
@@ -188,6 +190,37 @@ bus_call (GstBus * bus, GstMessage * msg, gpointer data)
 #define CONFIG_GROUP_TRACKER_LL_LIB_FILE "ll-lib-file"
 #define CONFIG_GROUP_TRACKER_ENABLE_BATCH_PROCESS "enable-batch-process"
 #define CONFIG_GPU_ID "gpu-id"
+
+static gchar *
+get_absolute_file_path (gchar *cfg_file_path, gchar *file_path)
+{
+  gchar abs_cfg_path[PATH_MAX + 1];
+  gchar *abs_file_path;
+  gchar *delim;
+
+  if (file_path && file_path[0] == '/') {
+    return file_path;
+  }
+
+  if (!realpath (cfg_file_path, abs_cfg_path)) {
+    g_free (file_path);
+    return NULL;
+  }
+
+  // Return absolute path of config file if file_path is NULL.
+  if (!file_path) {
+    abs_file_path = g_strdup (abs_cfg_path);
+    return abs_file_path;
+  }
+
+  delim = g_strrstr (abs_cfg_path, "/");
+  *(delim + 1) = '\0';
+
+  abs_file_path = g_strconcat (abs_cfg_path, file_path, NULL);
+  g_free (file_path);
+
+  return abs_file_path;
+}
 
 static gboolean
 set_tracker_properties (GstElement *nvtracker)
@@ -538,7 +571,7 @@ main (int argc, char *argv[])
   g_print ("Running...\n");
   g_print (">>> Creating csv file: objects.csv\n");
   csv_file = fopen("objects.csv", "w");
-  fprintf(csv_file, "Frame #, object ID, x, y, width, height\n");
+  fprintf(csv_file, "Frame #, object ID, label, x, y, width, height\n");
   g_main_loop_run (loop);
 
   /* Out of the main loop, clean up nicely */
