@@ -532,12 +532,10 @@ main (int argc, char *argv[])
   /* decoder | pgie1 | nvtracker | sgie1 | sgie2 | sgie3 | etc.. */
 #ifdef PLATFORM_TEGRA
   gst_bin_add_many (GST_BIN (pipeline),
-      streammux, pgie, nvtracker,
-      nvvidconv, nvosd, transform, sink, NULL);
+      pgie, nvtracker, nvvidconv, nvosd, transform, sink, NULL);
 #else
   gst_bin_add_many (GST_BIN (pipeline),
-      streammux, pgie, nvtracker,
-      nvvidconv, nvosd, sink, NULL);
+      pgie, nvtracker, nvvidconv, nvosd, sink, NULL);
 #endif
 #ifdef PLATFORM_TEGRA
   if (!gst_element_link_many (streammux, pgie, nvtracker,
