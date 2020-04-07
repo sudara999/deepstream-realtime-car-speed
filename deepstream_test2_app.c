@@ -84,6 +84,7 @@ osd_sink_pad_buffer_probe (GstPad * pad, GstPadProbeInfo * info,
     guint y_box = 0;
     guint width_box = 0;
     guint height_box = 0; 
+    gfloat confidence = 0;
 
     NvDsBatchMeta *batch_meta = gst_buffer_get_nvds_batch_meta (buf);
 
@@ -108,7 +109,8 @@ osd_sink_pad_buffer_probe (GstPad * pad, GstPadProbeInfo * info,
 	    y_box = obj_meta->rect_params.top;
 	    width_box = obj_meta->rect_params.width;
 	    height_box = obj_meta->rect_params.height;
-     	    fprintf(csv_file, "%d, %d, %s, %d, %d, %d, %d\n", frame_number, object_ID, object_label, x_box, y_box, width_box, height_box);
+	    confidence = obj_meta->confidence;
+     	    fprintf(csv_file, "%d,%d,%d,%d,%d,%d,%f,-1,-1,-1,%s\n", frame_number, object_ID, x_box, y_box, width_box, height_box, confidence, object_label);
 	}
 
         display_meta = nvds_acquire_display_meta_from_pool(batch_meta);
@@ -569,7 +571,7 @@ main (int argc, char *argv[])
   g_print ("Running...\n");
   g_print (">>> Creating csv file: objects.csv\n");
   csv_file = fopen("objects.csv", "w");
-  fprintf(csv_file, "Frame #, object ID, label, x, y, width, height\n");
+  fprintf(csv_file, "Frame #, object ID, x, y, width, height, confidence, -1, -1, -1, class\n");
   g_main_loop_run (loop);
 
   /* Out of the main loop, clean up nicely */
