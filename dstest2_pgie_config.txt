@@ -71,6 +71,7 @@ net-scale-factor=1
 network-mode=1
 parse-bbox-func-name=NvDsInferParseCustomYoloV3
 process-mode=1
+enable-dbscan=1
 # Change the properties below according to the model used
 custom-network-config=/root/deepstream_sdk_v4.0.2_x86_64/sources/objectDetector_Yolo/yolov3.cfg
 labelfile-path=/root/deepstream_sdk_v4.0.2_x86_64/sources/objectDetector_Yolo/labels.txt

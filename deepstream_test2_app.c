@@ -109,7 +109,7 @@ osd_sink_pad_buffer_probe (GstPad * pad, GstPadProbeInfo * info,
 	    y_box = obj_meta->rect_params.top;
 	    width_box = obj_meta->rect_params.width;
 	    height_box = obj_meta->rect_params.height;
-	    confidence = obj_meta->confidence;
+	    confidence = obj_meta->confidence * 100;
      	    fprintf(csv_file, "%d,%d,%d,%d,%d,%d,%f,-1,-1,-1,%s\n", frame_number, object_ID, x_box, y_box, width_box, height_box, confidence, object_label);
 	}
 
