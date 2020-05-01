@@ -103,7 +103,7 @@ osd_sink_pad_buffer_probe (GstPad * pad, GstPadProbeInfo * info,
                 person_count++;
                 num_rects++;
             }
-	    object_ID = obj_meta->object_id;
+	    object_ID = obj_meta->object_id - 1;
 	    object_label = obj_meta->obj_label;
 	    x_box = obj_meta->rect_params.left;
 	    y_box = obj_meta->rect_params.top;
