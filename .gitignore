@@ -3,3 +3,4 @@ deepstream_test2_app.o
 objects.csv
 model_b1_int8.engine
 csv/
+run_batch.sh
